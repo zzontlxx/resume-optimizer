@@ -1,0 +1,257 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简历优化助手</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部导航 -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="logo">简历优化助手</div>
+        <div class="header-actions">
+          <button class="btn-api-settings" id="btnApiSettings" title="配置 AI 密钥">
+            🤖 <span id="apiStatusText">未配置</span>
+          </button>
+        </div>
+      </div>
+      <div class="step-indicator">
+        <div class="step-dot active" data-step="1">1</div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="2">2</div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="3">3</div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="4">4</div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="5">5</div>
+      </div>
+    </header>
+
+    <!-- API 密钥设置弹窗 -->
+    <div class="modal-overlay" id="apiModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>配置 AI 密钥</h3>
+          <button class="modal-close" id="btnCloseModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">配置后可以使用 AI 自动生成优化范文和个性化建议。不配置也不影响基础功能（评分、建议、手动编辑下载）。</p>
+          <div class="form-group">
+            <label>API 地址</label>
+            <input type="text" id="apiBaseUrl" value="https://api.deepseek.com" placeholder="https://api.openai.com/v1">
+            <span class="form-hint">国内推荐用 DeepSeek：https://api.deepseek.com</span>
+          </div>
+          <div class="form-group">
+            <label>模型名称</label>
+            <input type="text" id="apiModel" value="deepseek-chat" placeholder="gpt-4o-mini">
+            <span class="form-hint">DeepSeek 填 deepseek-chat，OpenAI 填 gpt-4o-mini</span>
+          </div>
+          <div class="form-group">
+            <label>API 密钥</label>
+            <input type="password" id="apiKey" placeholder="sk-...">
+            <span class="form-hint">密钥只存在你浏览器本地，不会上传到服务器</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="btnClearApi">清空密钥</button>
+          <button class="btn btn-primary" id="btnSaveApi">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <main class="main-content">
+      
+      <!-- ====== 第1步：上传简历 ====== -->
+      <section class="step-panel active" id="step1">
+        <div class="panel-header">
+          <h2>上传你的简历</h2>
+          <p class="panel-desc">支持 .docx（Word）、.pdf 格式，也可以直接粘贴文本</p>
+        </div>
+        <div class="panel-body">
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄</div>
+            <p class="upload-text">将简历文件拖到这里</p>
+            <p class="upload-hint">或点击此区域选择文件</p>
+            <p class="upload-formats">支持 .docx、.pdf（5MB以内）</p>
+            <input type="file" id="fileInput" accept=".docx,.pdf,.txt" hidden>
+          </div>
+          <div class="divider"><span>或者</span></div>
+          <div class="paste-area">
+            <textarea id="pasteText" placeholder="在此粘贴简历文本内容……" rows="8"></textarea>
+            <button class="btn btn-secondary" id="btnPaste">使用粘贴的文本</button>
+          </div>
+          <div class="loading" id="loadingUpload" style="display:none;">
+            <div class="spinner"></div>
+            <p>正在读取简历…</p>
+          </div>
+          <div class="error-msg" id="errorUpload" style="display:none;"></div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn btn-primary" id="btnNext1" disabled>下一步</button>
+        </div>
+      </section>
+
+      <!-- ====== 第2步：目标岗位 ====== -->
+      <section class="step-panel" id="step2">
+        <div class="panel-header">
+          <h2>目标岗位描述</h2>
+          <p class="panel-desc">粘贴你想投递的岗位招聘信息，这样系统可以针对性地优化</p>
+        </div>
+        <div class="panel-body">
+          <textarea id="targetJd" placeholder="把招聘信息（JD）粘贴到这里……&#10;&#10;如果不确定，可以简单写想找什么样的工作，比如：&#10;&#34;我想找北京的Java后端开发岗位，3-5年经验要求&#34;" rows="10"></textarea>
+          <div class="skip-hint">如果不填，系统会按通用标准优化简历</div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn btn-secondary" id="btnBack2">上一步</button>
+          <button class="btn btn-primary" id="btnNext2">下一步</button>
+        </div>
+      </section>
+
+      <!-- ====== 第3步：补充经历 ====== -->
+      <section class="step-panel" id="step3">
+        <div class="panel-header">
+          <h2>补充其他经历</h2>
+          <p class="panel-desc">如果简历里没写全，可以在这里补充，比如新学的技能、做过的项目、拿到的证书</p>
+        </div>
+        <div class="panel-body">
+          <textarea id="extraInfo" placeholder="例如：&#10;- 2024年考取了PMP项目管理证书&#10;- 业余时间自学了Python数据分析&#10;- 参与过公司内部的技术分享会并担任主讲" rows="10"></textarea>
+          <div class="skip-hint">选填，如果没有可补充的，直接点"开始分析"</div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn btn-secondary" id="btnBack3">上一步</button>
+          <button class="btn btn-primary" id="btnAnalyze">开始分析</button>
+        </div>
+      </section>
+
+      <!-- ====== 第4步：分析结果 ====== -->
+      <section class="step-panel" id="step4">
+        <div class="panel-header">
+          <h2>简历分析结果</h2>
+          <p class="panel-desc">系统从6个维度评估了你的简历，以下是详细建议</p>
+        </div>
+        <div class="panel-body">
+          <div class="loading" id="loadingAnalyze" style="display:none;">
+            <div class="spinner"></div>
+            <p>正在分析简历…</p>
+          </div>
+          <div id="analysisResult" style="display:none;">
+            <!-- 总分 -->
+            <div class="total-score-card">
+              <div class="total-score-number" id="totalScore">0</div>
+              <div class="total-score-label">综合评分</div>
+            </div>
+
+            <!-- 各维度评分 -->
+            <div class="dimension-scores" id="dimensionScores"></div>
+
+            <!-- 优化建议列表 -->
+            <div class="suggestions-section">
+              <h3>逐条优化建议</h3>
+              <div class="suggestions-list" id="suggestionsList"></div>
+            </div>
+
+            <!-- 职位名称建议 -->
+            <div class="position-suggestions-section" id="positionSuggestions" style="display:none;">
+              <h3>职位名称建议（需你手动确认）</h3>
+              <div id="positionSuggestionsList"></div>
+            </div>
+          </div>
+          <div class="error-msg" id="errorAnalyze" style="display:none;"></div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn btn-secondary" id="btnBack4">上一步</button>
+          <button class="btn btn-primary" id="btnGenerate">生成优化范文</button>
+        </div>
+      </section>
+
+      <!-- ====== 第5步：范文 + 下载 ====== -->
+      <section class="step-panel" id="step5">
+        <div class="panel-header">
+          <h2>优化范文</h2>
+          <p class="panel-desc" id="step5Desc">以下是基于你的简历生成的内容，你可以直接下载或复制</p>
+        </div>
+        <div class="panel-body">
+          <div class="loading" id="loadingGenerate" style="display:none;">
+            <div class="spinner"></div>
+            <p>正在生成范文…</p>
+          </div>
+          <div id="generateResult" style="display:none;">
+            <div class="optimized-content" id="optimizedContent" contenteditable="true"></div>
+            <p class="edit-hint">✏️ 点击内容可以直接编辑修改</p>
+          </div>
+          <div id="noAiNotice" style="display:none;">
+            <div class="no-ai-card">
+              <div class="no-ai-icon">🤖</div>
+              <p class="no-ai-title">未配置 AI 密钥</p>
+              <p class="no-ai-desc">配置后可以自动生成优化范文。不配置也可以手动编辑下方的内容。</p>
+              <button class="btn btn-outline" id="btnOpenApiFromStep5">去配置密钥</button>
+            </div>
+            <div class="optimized-content" id="manualContent" contenteditable="true"></div>
+            <p class="edit-hint">✏️ 你可以直接在上面编辑修改简历内容</p>
+          </div>
+          <div class="error-msg" id="errorGenerate" style="display:none;"></div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn btn-secondary" id="btnBack5">上一步</button>
+          <button class="btn btn-outline" id="btnCopyText">📋 复制纯文本</button>
+          <button class="btn btn-outline" id="btnDownloadDocx">📥 下载 Word</button>
+          <button class="btn btn-outline" id="btnDownloadPdf">📥 下载 PDF</button>
+          <button class="btn btn-primary" id="btnImprove">查看提升建议</button>
+        </div>
+      </section>
+
+      <!-- ====== 第6步：提升建议 ====== -->
+      <section class="step-panel" id="step6">
+        <div class="panel-header">
+          <h2>个人提升建议</h2>
+          <p class="panel-desc">根据你的现状，以下是短期内可以做的事</p>
+        </div>
+        <div class="panel-body">
+          <div class="loading" id="loadingImprove" style="display:none;">
+            <div class="spinner"></div>
+            <p>正在生成建议…</p>
+          </div>
+          <div id="improveResult" style="display:none;">
+            <div class="improve-section">
+              <h3 class="improve-title short-term">📌 近期行动（本周内可做）</h3>
+              <ul class="improve-list" id="shortTermList"></ul>
+            </div>
+            <div class="improve-section">
+              <h3 class="improve-title medium-term">🎯 中期目标（1-3个月）</h3>
+              <ul class="improve-list" id="mediumTermList"></ul>
+            </div>
+            <div class="improve-section">
+              <h3 class="improve-title long-term">🌟 长期规划（3-6个月）</h3>
+              <ul class="improve-list" id="longTermList"></ul>
+            </div>
+          </div>
+          <div class="no-ai-card" id="improveNoAi" style="display:none;">
+            <div class="no-ai-icon">🤖</div>
+            <p class="no-ai-title">未配置 AI 密钥</p>
+            <p class="no-ai-desc">配置 AI 后可以获得更个性化的提升建议。目前显示的是基于规则的基础建议。</p>
+            <button class="btn btn-outline" id="btnOpenApiFromStep6">去配置密钥</button>
+          </div>
+          <div class="error-msg" id="errorImprove" style="display:none;"></div>
+        </div>
+        <div class="panel-footer">
+          <button class="btn btn-secondary" id="btnBack6">上一步</button>
+          <button class="btn btn-primary" id="btnRestart">重新开始</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 底部 -->
+    <footer class="app-footer">
+      <p>简历优化助手 · 你的简历和密钥仅在你本地使用</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
